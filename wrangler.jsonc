@@ -1,0 +1,34 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cf-ai-incident-copilot",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // Static chat UI (public/index.html) served by Workers Static Assets.
+  // Requests that don't match a file fall through to the Worker.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/agents/*", "/api/*"]
+  },
+
+  // LLM: Llama 3.3 on Workers AI
+  "ai": { "binding": "AI" },
+
+  // Memory/state: one Durable Object (Agent) per incident, with embedded SQLite
+  "durable_objects": {
+    "bindings": [{ "name": "IncidentAgent", "class_name": "IncidentAgent" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["IncidentAgent"] }],
+
+  // Coordination: durable multi-step Workflow that writes the postmortem
+  "workflows": [
+    {
+      "name": "postmortem-workflow",
+      "binding": "POSTMORTEM_WORKFLOW",
+      "class_name": "PostmortemWorkflow"
+    }
+  ]
+}
